@@ -39,15 +39,29 @@ func wrap(h func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
 		}
 		var ae *apiError
 		var se sqlite3.Error
-		switch {
-		case errors.As(err, &ae):
-			_ = writeJSON(w, ae.Status, map[string]string{"error": ae.Msg})
-		case errors.As(err, &se) && se.Code == sqlite3.ErrConstraint:
-			_ = writeJSON(w, http.StatusConflict,
-				map[string]string{"error": "conflict: duplicate value or constraint violation"})
-		default:
-			log.Printf("ERROR %s %s: %v", r.Method, r.URL.Path, err)
-			_ = writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+
+switch {
+case errors.As(err, &ae):
+    _ = writeJSON(w, ae.Status, map[string]string{
+        "error": ae.Msg,
+    })
+
+case errors.As(err, &se) && se.ExtendedCode == sqlite3.ErrConstraintUnique:
+    _ = writeJSON(w, http.StatusConflict, map[string]string{
+        "error": "conflict: duplicate value",
+    })
+
+case errors.As(err, &se) && se.Code == sqlite3.ErrConstraint:
+    _ = writeJSON(w, http.StatusConflict, map[string]string{
+        "error": "conflict: constraint violation",
+    })
+
+default:
+    log.Printf("ERROR %s %s: %v", r.Method, r.URL.Path, err)
+    _ = writeJSON(w, http.StatusInternalServerError, map[string]string{
+        "error": "internal server error",
+    })
+}
 		}
 	}
 }
