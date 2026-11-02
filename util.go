@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // ---------------------------------------------------------------- errors
@@ -38,7 +38,6 @@ func wrap(h func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
 			return
 		}
 		var ae *apiError
-		var se sqlite3.Error
 
 switch {
 case errors.As(err, &ae):
@@ -46,14 +45,9 @@ case errors.As(err, &ae):
         "error": ae.Msg,
     })
 
-case errors.As(err, &se) && se.ExtendedCode == sqlite3.ErrConstraintUnique:
+case strings.Contains(strings.ToLower(err.Error()), "constraint failed"):
     _ = writeJSON(w, http.StatusConflict, map[string]string{
-        "error": "conflict: duplicate value",
-    })
-
-case errors.As(err, &se) && se.Code == sqlite3.ErrConstraint:
-    _ = writeJSON(w, http.StatusConflict, map[string]string{
-        "error": "conflict: constraint violation",
+        "error": "conflict: duplicate value or constraint violation",
     })
 
 default:
@@ -62,8 +56,9 @@ default:
         "error": "internal server error",
     })
 }
+}
 		}
-	}
+	
 
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {

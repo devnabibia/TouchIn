@@ -86,7 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_items_product ON sale_items(product_id);
 func openDB(path string) (*sql.DB, error) {
 	// _txlock=immediate takes the write lock at BEGIN, avoiding lock-upgrade deadlocks.
 	dsn := fmt.Sprintf("file:%s?_txlock=immediate&_busy_timeout=5000&_foreign_keys=on&_journal_mode=WAL", path)
-	db, err := sql.Open("sqlite3", dsn)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
